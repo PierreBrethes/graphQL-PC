@@ -10,8 +10,9 @@ const typeDefs = `
     address : Address
     phone : String!
     company : Company
-
-    todos: [Todo]
+    posts : [Post]
+    albums : [Album]
+    todos : [Todo]
   }
 
   type Address {
@@ -83,42 +84,62 @@ const opts = {
   port: 4000 //configurable port no
 }
 
+const endpoint = `https://jsonplaceholder.typicode.com`
+
 const resolvers = {
   Query: {
-    users: async (_, { id }) => {
-      const url = id ? `https://jsonplaceholder.typicode.com/users/${id}` : `https://jsonplaceholder.typicode.com/users`
+    users: async (_, { id }, { posts }) => {
+      // le /users renverra un résultat normale
+      // le /users/:id renverra l'utilisateur en question + ses todos, ses albums et ses posts
+      const url = id ? `${endpoint}/users/${id}` : `${endpoint}/users`
+      const postsUrl = `${endpoint}/posts?userId=${id}`
+      const albumsUrl = `${endpoint}/albums?userId=${id}`
+      const todosUrl = `${endpoint}/todos?userId=${id}`
+
       const res = await fetch(url)
+      const resPosts = await fetch(postsUrl)
+      const resAlbums = await fetch(albumsUrl)
+      const resTodos = await fetch(todosUrl)
+
       const users = await res.json()
+      const _posts = await resPosts.json()
+      const _albums = await resAlbums.json()
+      const _todos = await resTodos.json()
+
+      users.posts = _posts
+      users.albums = _albums
+      users.todos = _todos
       return id ? [users] : users;
     },
+
     posts: async (_, { userId }) => {
-      const url = userId ? `https://jsonplaceholder.typicode.com/posts?userId=${ userId }` : `https://jsonplaceholder.typicode.com/posts`
+      const url = userId ? `${endpoint}/posts?userId=${ userId }` : `${endpoint}/posts`
       const res = await fetch(url);
       return await res.json();
     },
+
     albums: async (_, { userId }) => {
-      const url = userId ? `https://jsonplaceholder.typicode.com/albums?userId=${ userId }` : `https://jsonplaceholder.typicode.com/albums`
+      const url = userId ? `${endpoint}/albums?userId=${ userId }` : `${endpoint}/albums`
       const res = await fetch(url);
       return await res.json();
     },
     photos: async (_, { albumId }) => {
-      const url = albumId ? `https://jsonplaceholder.typicode.com/photos?albumId=${ albumId }` : `https://jsonplaceholder.typicode.com/photos`
+      const url = albumId ? `${endpoint}/photos?albumId=${ albumId }` : `${endpoint}/photos`
       const res = await fetch(url);
       return await res.json();
     },
     todos: async (_, { userId }) => {
-      const url = userId ? `https://jsonplaceholder.typicode.com/todos?userId=${ userId }` : `https://jsonplaceholder.typicode.com/todos`
+      const url = userId ? `${endpoint}/todos?userId=${ userId }` : `${endpoint}/todos`
       const res = await fetch(url);
       return await res.json();
     },
     comments: async (_, { postId }) => {
-      const url = postId ? `https://jsonplaceholder.typicode.com/comments?postId=${ postId }` : `https://jsonplaceholder.typicode.com/comments`
+      const url = postId ? `${endpoint}/comments?postId=${ postId }` : `${endpoint}/comments`
       const res = await fetch(url);
       return await res.json();
     }
   },
 }
-
 
 const server = new GraphQLServer({ typeDefs, resolvers, opts })
 server.start(() => console.log(`Server is running at http://localhost:${opts.port}`))
